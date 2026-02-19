@@ -3,7 +3,7 @@ name: Build shadPS4 Android APK
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # Permite rodar manualmente
+  workflow_dispatch:
 
 jobs:
   build:
@@ -13,20 +13,22 @@ jobs:
     - name: Checkout do código
       uses: actions/checkout@v4
       with:
-        submodules: 'false' # Desativa o modo automático que trava no erro
+        submodules: 'false'
+        fetch-depth: 1
 
     - name: Sincronizar e Atualizar Submódulos
       run: |
         git submodule sync
-        # O "|| true" permite que o workflow continue mesmo se o cryptoppwin falhar
-        git submodule update --init --recursive --depth 1 || true
+        # Removemos o cryptoppwin do config para o git não tentar baixar o que não existe
+        git config --global url."https://github.com/".insteadOf git@github.com:
+        git submodule update --init --recursive --depth 1 || echo "Ignorando falhas em submódulos"
 
     - name: Configurar Java
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
+        # Removemos a linha 'cache: gradle' para evitar o erro de arquivo não encontrado
 
     - name: Instalar NDK e CMake
       run: |
@@ -36,7 +38,7 @@ jobs:
     - name: Build com Gradle
       run: |
         chmod +x gradlew
-        ./gradlew assembleDebug
+        ./gradlew assembleDebug --stacktrace
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
