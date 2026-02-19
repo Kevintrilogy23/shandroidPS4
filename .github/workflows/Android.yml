@@ -1,0 +1,39 @@
+name: Build shadPS4 Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Permite rodar manualmente
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive # Essencial para emuladores (baixa as dependências externas)
+
+    - name: Configurar Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Instalar NDK e CMake
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build
+
+    - name: Build com Gradle
+      run: |
+        chmod +x gradlew
+        ./gradlew assembleDebug # Gera o APK de teste (mais rápido que o Release)
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: shadPS4-debug-apk
+        path: app/build/outputs/apk/debug/*.apk
+
