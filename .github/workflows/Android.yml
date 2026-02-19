@@ -18,10 +18,9 @@ jobs:
 
     - name: Limpar e Atualizar Submódulos
       run: |
-        # Remove a referência ao submódulo quebrado diretamente no config
         git config -f .gitmodules --remove-section submodule.externals/cryptoppwin || true
         git submodule sync
-        git submodule update --init --recursive --depth 1 || echo "Ignorando submódulos faltantes"
+        git submodule update --init --recursive --depth 1 || echo "Ignorando submódulos"
 
     - name: Configurar Java
       uses: actions/setup-java@v4
@@ -29,15 +28,22 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Instalar NDK e CMake
+    - name: Instalar NDK e Dependências
       run: |
         sudo apt-get update
         sudo apt-get install -y cmake ninja-build
 
-    - name: Build com Gradle (Pasta Android)
+    - name: Localizar e Rodar Build
       run: |
-        # O segredo está aqui: entrar na pasta onde o gradlew realmente existe
-        cd android 
+        # Procura o arquivo gradlew em qualquer subpasta
+        GRADLE_PATH=$(find . -name gradlew | head -n 1)
+        if [ -z "$GRADLE_PATH" ]; then
+          echo "Erro: gradlew não encontrado no repositório!"
+          exit 1
+        fi
+        GRADLE_DIR=$(dirname "$GRADLE_PATH")
+        echo "Gradle encontrado em: $GRADLE_DIR"
+        cd "$GRADLE_DIR"
         chmod +x gradlew
         ./gradlew assembleDebug --stacktrace
 
@@ -45,4 +51,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: shadPS4-debug-apk
-        path: android/app/build/outputs/apk/debug/*.apk
+        path: "**/*.apk" # Pega qualquer APK gerado em qualquer pasta
